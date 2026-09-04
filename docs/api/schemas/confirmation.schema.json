@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mc-ai-manager.local/schemas/confirmation.schema.json",
+  "title": "ConfirmationToken",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operationId", "resourceId", "manifestHash", "actorId", "copyVersion", "issuedAt", "expiresAt", "selection"],
+  "properties": {
+    "operationId": { "type": "string", "minLength": 1 },
+    "resourceId": { "type": "string", "minLength": 1 },
+    "manifestHash": { "type": "string", "minLength": 1 },
+    "actorId": { "type": "string", "minLength": 1 },
+    "copyVersion": { "type": "string", "minLength": 1 },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "selection": { "type": "string", "minLength": 1 }
+  }
+}

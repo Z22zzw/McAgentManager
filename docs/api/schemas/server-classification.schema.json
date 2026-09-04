@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mc-ai-manager.local/schemas/server-classification.schema.json",
+  "title": "ServerClassification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["classification", "confidence", "mcVersion", "core", "javaMajor", "entry", "evidence"],
+  "properties": {
+    "classification": { "type": "string", "enum": ["COMPLETE_SERVER", "WORLD_ONLY", "CLIENT_MODPACK", "PLATFORM_MODPACK", "INSTALLER_REQUIRED", "UNSUPPORTED_VERSION", "UNSAFE_ARCHIVE", "AMBIGUOUS_ENTRY"] },
+    "confidence": { "type": "string", "enum": ["CONFIRMED", "LIKELY", "UNKNOWN"] },
+    "mcVersion": { "type": ["string", "null"] },
+    "core": { "type": ["string", "null"], "enum": ["Vanilla", "Paper", "Fabric", "Forge", "NeoForge", null] },
+    "javaMajor": { "type": ["integer", "null"], "minimum": 1 },
+    "entry": { "type": ["string", "null"] },
+    "evidence": { "type": "array", "items": { "type": "string" } },
+    "untrustedContent": { "type": "boolean", "default": true }
+  }
+}

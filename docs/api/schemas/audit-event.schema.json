@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mc-ai-manager.local/schemas/audit-event.schema.json",
+  "title": "AuditEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "taskId", "actorId", "type", "summary", "occurredAt"],
+  "properties": {
+    "eventId": { "type": "string", "minLength": 1 },
+    "taskId": { "type": "string", "minLength": 1 },
+    "operationId": { "type": "string" },
+    "actorId": { "type": "string", "minLength": 1 },
+    "type": { "type": "string", "enum": ["REQUESTED", "CONFIRMATION", "EXECUTION_STARTED", "EXECUTION_RESULT", "VERIFICATION", "BLOCKED", "EXTERNAL_CHANGE"] },
+    "summary": { "type": "string", "minLength": 1 },
+    "details": { "type": "object", "additionalProperties": { "type": "string" } },
+    "occurredAt": { "type": "string", "format": "date-time" }
+  }
+}

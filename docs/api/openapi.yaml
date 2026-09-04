@@ -1,0 +1,232 @@
+openapi: 3.1.0
+info:
+  title: MC AI Manager API
+  version: 0.1.0
+  description: |
+    面向 Minecraft 服务器管理的业务 API。前端和 Agent 只使用本业务契约，
+    不直接依赖 MCSManager 原始字段。
+servers:
+  - url: /api/v1
+security:
+  - sessionCookie: []
+tags:
+  - name: Auth
+  - name: Instances
+  - name: Tasks
+  - name: Disk
+  - name: Audit
+  - name: Advanced
+paths:
+  /auth/session:
+    get:
+      tags: [Auth]
+      security: []
+      operationId: getSession
+      responses:
+        '200': { description: 当前登录用户, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      operationId: login
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/LoginRequest' } } }
+      responses:
+        '200': { description: 登录成功, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      responses:
+        '204': { description: 已注销 }
+  /instances:
+    get:
+      tags: [Instances]
+      operationId: listInstances
+      responses:
+        '200': { description: 实例列表, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/Instance' } }, observedAt: { type: string, format: date-time } } } } } }
+  /instances/{instanceId}:
+    parameters: [{ $ref: '#/components/parameters/InstanceId' }]
+    get:
+      tags: [Instances]
+      operationId: getInstance
+      responses:
+        '200': { description: 实例详情, content: { application/json: { schema: { $ref: '#/components/schemas/Instance' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /instances/{instanceId}/actions:
+    parameters: [{ $ref: '#/components/parameters/InstanceId' }]
+    post:
+      tags: [Instances]
+      operationId: controlInstance
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ControlRequest' } } }
+      responses:
+        '202': { description: 已创建控制任务, content: { application/json: { schema: { $ref: '#/components/schemas/TaskReference' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /deployments:
+    post:
+      tags: [Tasks]
+      operationId: createDeployment
+      requestBody:
+        required: true
+        content: { multipart/form-data: { schema: { type: object, required: [archive], properties: { archive: { type: string, format: binary }, idempotencyKey: { type: string } } } } }
+      responses:
+        '202': { description: 已创建部署任务, content: { application/json: { schema: { $ref: '#/components/schemas/TaskReference' } } } }
+        '413': { $ref: '#/components/responses/ArchiveTooLarge' }
+  /tasks/{taskId}:
+    parameters: [{ $ref: '#/components/parameters/TaskId' }]
+    get:
+      tags: [Tasks]
+      operationId: getTask
+      responses:
+        '200': { description: 任务状态, content: { application/json: { schema: { $ref: '#/components/schemas/Task' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /tasks/{taskId}/decisions:
+    parameters: [{ $ref: '#/components/parameters/TaskId' }]
+    post:
+      tags: [Tasks]
+      operationId: submitDecision
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/DecisionSubmission' } } }
+      responses:
+        '202': { description: 任务继续执行, content: { application/json: { schema: { $ref: '#/components/schemas/Task' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /tasks/{taskId}/reconcile:
+    parameters: [{ $ref: '#/components/parameters/TaskId' }]
+    post:
+      tags: [Tasks]
+      operationId: reconcileTask
+      responses:
+        '202': { description: 已进入恢复核对, content: { application/json: { schema: { $ref: '#/components/schemas/Task' } } } }
+  /disk:
+    get:
+      tags: [Disk]
+      operationId: getDiskStatus
+      responses:
+        '200': { description: 磁盘状态, content: { application/json: { schema: { $ref: '#/components/schemas/DiskStatus' } } } }
+  /disk/cleanup:
+    post:
+      tags: [Disk]
+      operationId: cleanupDisk
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CleanupRequest' } } }
+      responses:
+        '202': { description: 已创建清理任务, content: { application/json: { schema: { $ref: '#/components/schemas/TaskReference' } } } }
+  /instances/{instanceId}/deletion-preview:
+    parameters: [{ $ref: '#/components/parameters/InstanceId' }]
+    post:
+      tags: [Disk]
+      operationId: previewDeletion
+      responses:
+        '200': { description: 删除预览, content: { application/json: { schema: { $ref: '#/components/schemas/DeletionPreview' } } } }
+  /instances/{instanceId}/deletion:
+    parameters: [{ $ref: '#/components/parameters/InstanceId' }]
+    delete:
+      tags: [Disk]
+      operationId: deleteInstance
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/DeletionConfirmation' } } }
+      responses:
+        '202': { description: 已创建删除任务, content: { application/json: { schema: { $ref: '#/components/schemas/TaskReference' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /audit-events:
+    get:
+      tags: [Audit]
+      operationId: listAuditEvents
+      parameters:
+        - { in: query, name: taskId, schema: { type: string } }
+        - { in: query, name: instanceId, schema: { type: string } }
+        - { in: query, name: outcome, schema: { type: string, enum: [SUCCEEDED, PARTIAL, FAILED, CANCELLED, RECOVERY_REQUIRED] } }
+      responses:
+        '200': { description: 审计事件列表, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: '#/components/schemas/AuditEvent' } } } } } } }
+  /instances/{instanceId}/advanced-entry:
+    parameters: [{ $ref: '#/components/parameters/InstanceId' }]
+    get:
+      tags: [Advanced]
+      operationId: getAdvancedEntry
+      responses:
+        '200': { description: 安全高级管理入口, content: { application/json: { schema: { $ref: '#/components/schemas/AdvancedEntry' } } } }
+components:
+  securitySchemes:
+    sessionCookie: { type: apiKey, in: cookie, name: mc_ai_session }
+  parameters:
+    InstanceId: { in: path, name: instanceId, required: true, schema: { type: string, minLength: 1 } }
+    TaskId: { in: path, name: taskId, required: true, schema: { type: string, minLength: 1 } }
+  responses:
+    Unauthorized: { description: 未认证, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    NotFound: { description: 资源不存在, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Conflict: { description: 状态冲突或确认失效, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    ArchiveTooLarge: { description: 上传超过限制, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  schemas:
+    Session:
+      type: object
+      required: [userId, role]
+      properties: { userId: { type: string }, role: { type: string, enum: [DEPLOY_ADMIN] }, expiresAt: { type: string, format: date-time } }
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties: { username: { type: string }, password: { type: string, format: password } }
+    Instance:
+      type: object
+      required: [id, name, lifecycle, health, workDirectory, observedAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        lifecycle: { type: string, enum: [STOPPED, STARTING, RUNNING, STOPPING, ABNORMAL, UNKNOWN] }
+        health: { type: string, enum: [UNVERIFIED, PREPARING, LOCAL_READY, DEGRADED, UNAVAILABLE, UNKNOWN] }
+        gameVersion: { type: string, nullable: true }
+        serverCore: { type: string, nullable: true, enum: [VANILLA, PAPER, FABRIC, FORGE, NEOFORGE] }
+        loginMode: { type: string, enum: [OFFLINE, ONLINE, UNKNOWN] }
+        workDirectory: { type: string }
+        port: { type: integer, minimum: 1, maximum: 65535 }
+        players: { type: object, properties: { online: { type: integer }, max: { type: integer }, source: { type: string } } }
+        observedAt: { type: string, format: date-time }
+    ControlRequest:
+      type: object
+      required: [action, idempotencyKey]
+      properties: { action: { type: string, enum: [START, STOP, RESTART] }, idempotencyKey: { type: string } }
+    TaskReference:
+      type: object
+      required: [taskId, state]
+      properties: { taskId: { type: string }, state: { type: string, enum: [CREATED, INSPECTING, WAITING_USER, QUEUED, EXECUTING, VERIFYING, SUCCEEDED, PARTIAL, FAILED, CANCELLED, INTERRUPTED, RECOVERING, RECOVERY_REQUIRED] } }
+    Task:
+      allOf: [{ $ref: '#/components/schemas/TaskReference' }, { type: object, properties: { resourceId: { type: string }, currentStep: { type: object }, progress: { type: object, properties: { completed: { type: integer }, total: { type: integer } } } } }]
+    DecisionSubmission:
+      type: object
+      required: [questionId, selection]
+      properties: { questionId: { type: string }, selection: { type: array, items: { type: string } }, custom: { type: string }, confirmationToken: { type: string } }
+    DiskStatus:
+      type: object
+      required: [availableBytes, safetyMarginBytes, observedAt]
+      properties: { availableBytes: { type: integer, minimum: 0 }, safetyMarginBytes: { type: integer, minimum: 0 }, observedAt: { type: string, format: date-time } }
+    CleanupRequest:
+      type: object
+      required: [targets, idempotencyKey]
+      properties: { targets: { type: array, items: { type: string, enum: [INCOMPLETE_UPLOADS, FAILED_STAGING, REGENERABLE_CACHE, EXPIRED_LOGS] } }, idempotencyKey: { type: string } }
+    DeletionPreview:
+      type: object
+      required: [operationId, resourceId, manifestHash, scope, reversible]
+      properties: { operationId: { type: string }, resourceId: { type: string }, manifestHash: { type: string }, scope: { type: array, items: { type: string } }, bytes: { type: integer }, latestBackup: { type: string, nullable: true }, reversible: { type: boolean }, expiresAt: { type: string, format: date-time } }
+    DeletionConfirmation:
+      type: object
+      required: [operationId, resourceId, manifestHash, actorId, copyVersion, confirmationToken, typedName]
+      properties: { operationId: { type: string }, resourceId: { type: string }, manifestHash: { type: string }, actorId: { type: string }, copyVersion: { type: string }, confirmationToken: { type: string }, typedName: { type: string } }
+    AuditEvent:
+      type: object
+      required: [eventId, taskId, actorId, type, summary, occurredAt]
+      properties: { eventId: { type: string }, taskId: { type: string }, operationId: { type: string }, actorId: { type: string }, type: { type: string }, summary: { type: string }, details: { type: object, additionalProperties: { type: string } }, occurredAt: { type: string, format: date-time } }
+    AdvancedEntry:
+      type: object
+      required: [instanceId, url, credentialExposure, requiresReconciliation]
+      properties: { instanceId: { type: string }, url: { type: string, format: uri }, credentialExposure: { type: string, enum: [NONE, SHORT_LIVED, INDEPENDENT_LOGIN] }, requiresReconciliation: { type: boolean } }
+    Error:
+      type: object
+      required: [code, message, retryable, requiresReconciliation]
+      properties: { code: { type: string }, message: { type: string }, retryable: { type: boolean }, requiresReconciliation: { type: boolean }, operationId: { type: string } }

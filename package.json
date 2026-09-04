@@ -1,0 +1,35 @@
+{
+  "name": "mc-ai-manager",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:api": "tsx src/server.ts",
+    "dev:web": "vite --config vite.config.ts",
+    "build:web": "vite build --config vite.config.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bdd:validate": "node specs/bdd/validate-bdd.mjs",
+    "bdd:parse": "cucumber-js --dry-run --format summary \"specs/bdd/features/*.feature\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.2.0",
+    "@tanstack/react-query": "^5.102.8",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^5.1.1",
+    "js-yaml": "^5.4.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.2",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "fastify": "^5.12.1"
+  }
+}
